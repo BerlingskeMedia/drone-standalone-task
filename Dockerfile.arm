@@ -1,0 +1,10 @@
+FROM plugins/base:multiarch
+
+LABEL org.label-schema.version=latest
+LABEL org.label-schema.vcs-url="https://github.com/BerlingskeMedia/drone-standalone-task.git"
+LABEL org.label-schema.name="Drone ECS Standalone"
+LABEL org.label-schema.vendor="BerlingskeMedia"
+LABEL org.label-schema.schema-version="1.0"
+
+ADD release/linux/arm/drone-standalone-task /bin/
+ENTRYPOINT ["/bin/drone-standalone-task"]
