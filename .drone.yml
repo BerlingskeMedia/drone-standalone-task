@@ -62,7 +62,7 @@ steps:
 
 - name: publish linux arm64
   image: plugins/ecr
-  depends_on: [build_linux_arm]
+  depends_on: [build_linux_arm64]
   settings:
     mirror:
       from_secret: docker_proxy_mirror
@@ -84,37 +84,14 @@ steps:
       exclude:
         - pull_request
 
-- name: publish linux amd
-  image: plugins/ecr
-  depends_on: [build_linux_amd]
-  settings:
-    mirror:
-      from_secret: docker_proxy_mirror
-    #auto_tag_suffix: ${DRONE_BRANCH,,}
-    #auto_tag_suffix: _amd
-    auto_tag: true
-    purge: false
-    #tags:
-    #  - ${DRONE_COMMIT}
-    registry:
-      from_secret: registry
-    repo:
-      from_secret: repository_standalone_task
-    dockerfile: Dockerfile.arm
-    region:
-      from_secret: region
-  when:
-    event:
-      exclude:
-        - pull_request
-
 - name: publish linux amd64
   image: plugins/ecr
   depends_on: [build_linux_amd64]
   settings:
     mirror:
       from_secret: docker_proxy_mirror
-    auto_tag_suffix: _amd64
+    #auto_tag_suffix: ${DRONE_BRANCH,,}
+    #auto_tag_suffix: _amd64
     auto_tag: true
     purge: false
     #tags:
@@ -124,6 +101,29 @@ steps:
     repo:
       from_secret: repository_standalone_task
     dockerfile: Dockerfile
+    region:
+      from_secret: region
+  when:
+    event:
+      exclude:
+        - pull_request
+
+- name: publish linux arm
+  image: plugins/ecr
+  depends_on: [build_linux_arm]
+  settings:
+    mirror:
+      from_secret: docker_proxy_mirror
+    auto_tag_suffix: _arm
+    auto_tag: true
+    purge: false
+    #tags:
+    #  - ${DRONE_COMMIT}
+    registry:
+      from_secret: registry
+    repo:
+      from_secret: repository_standalone_task
+    dockerfile: Dockerfile.arm
     region:
       from_secret: region
   when:
