@@ -70,8 +70,8 @@ steps:
     auto_tag_suffix: _arm64
     auto_tag: true
     purge: false
-    #tags:
-    #  - ${DRONE_COMMIT}
+    tags:
+      - ${DRONE_TAG}
     registry:
       from_secret: registry
     repo:
@@ -81,8 +81,7 @@ steps:
       from_secret: region
   when:
     event:
-      exclude:
-        - pull_request
+      - tag
 
 - name: publish linux amd64
   image: plugins/ecr
@@ -94,8 +93,8 @@ steps:
     #auto_tag_suffix: _amd64
     auto_tag: true
     purge: false
-    #tags:
-    #  - ${DRONE_COMMIT}
+    tags:
+      - ${DRONE_TAG}
     registry:
       from_secret: registry
     repo:
@@ -105,8 +104,7 @@ steps:
       from_secret: region
   when:
     event:
-      exclude:
-        - pull_request
+      - tag
 
 - name: publish linux arm
   image: plugins/ecr
@@ -117,8 +115,8 @@ steps:
     auto_tag_suffix: _arm
     auto_tag: true
     purge: false
-    #tags:
-    #  - ${DRONE_COMMIT}
+    tags:
+      - ${DRONE_TAG}
     registry:
       from_secret: registry
     repo:
@@ -128,8 +126,7 @@ steps:
       from_secret: region
   when:
     event:
-      exclude:
-        - pull_request
+      - tag
 
 trigger:
   branch:
