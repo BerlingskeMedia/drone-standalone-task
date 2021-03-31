@@ -20,4 +20,4 @@ go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/a
 
 
 ## Build docker image
-#docker build  --no-cache --rm --pull -f Dockerfile -t "drone-standalone-tasks:0.0.2" .
+#docker build  --no-cache --rm --pull -f Dockerfile -t "drone-standalone-task:0.0.2" .

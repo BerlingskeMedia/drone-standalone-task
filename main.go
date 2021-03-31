@@ -51,11 +51,6 @@ func main() {
 			EnvVar: "PLUGIN_TASK_ROLE_ARN",
 		},
 		cli.StringFlag{
-			Name:   "service",
-			Usage:  "Service to act on",
-			EnvVar: "PLUGIN_SERVICE",
-		},
-		cli.StringFlag{
 			Name:   "container-name",
 			Usage:  "Container name",
 			EnvVar: "PLUGIN_CONTAINER_NAME",
@@ -135,11 +130,6 @@ func main() {
 			Name:   "network-mode",
 			Usage:  "The Docker networking mode to use for the containers in the task. Defaults to bridge if unspecified",
 			EnvVar: "PLUGIN_TASK_NETWORK_MODE",
-		},
-		cli.StringFlag{
-			Name:   "deployment-configuration",
-			Usage:  "Deployment parameters that control how many tasks run during the deployment and the ordering of stopping and starting tasks",
-			EnvVar: "PLUGIN_DEPLOYMENT_CONFIGURATION",
 		},
 		cli.Int64Flag{
 			Name:   "desired-count",
@@ -241,6 +231,48 @@ func main() {
 			Usage:  "json array of placement constraints",
 			EnvVar: "PLUGIN_PLACEMENT_CONSTRAINTS",
 		},
+
+		cli.BoolFlag{
+			Name:   "enable-execute-command",
+			Usage:  "Whether or not to enable the execute command functionality for the containers",
+			EnvVar: "PLUGIN_ENABLE_EXECUTE_COMMAND",
+		},
+		cli.BoolFlag{
+			Name:   "propagate-tags",
+			Usage:  "Specifies whether to propagate the tags from the task definition to the task",
+			EnvVar: "PLUGIN_PROPAGATE_TAGS",
+		},
+		cli.StringFlag{
+			Name:   "platform-version",
+			Usage:  "The platform version the task should run. A platform version is only specified for tasks using the Fargate launch type",
+			EnvVar: "PLUGIN_PLATFORM_VERSION",
+		},
+		cli.StringSliceFlag{
+			Name:   "capacity-providers",
+			Usage:  "Defines capacity providers",
+			EnvVar: "PLUGIN_CAPACITY_PROVIDERS",
+		},
+		cli.BoolFlag{
+			Name:   "dont-wait",
+			Usage:  "Script won't wait for all tasks to finish",
+			EnvVar: "PLUGIN_DONT_WAIT",
+		},
+		cli.BoolFlag{
+			Name:   "ignore-execution-fail",
+			Usage:  "Script won't fail on task's containers exit code !=0",
+			EnvVar: "PLUGIN_IGNORE_EXECUTION_FAIL",
+		},
+		cli.Int64Flag{
+			Name:   "task-timeout",
+			Usage:  "Timeout in seconds for task to successfully set all stages from `PROVISSIONING` to `STOPPED` or to `RUNNING` if `dont-wait` flag enabled. Default 300",
+			Value:  300,
+			EnvVar: "PLUGIN_TASK_TIMEOUT",
+		},
+		cli.BoolTFlag{
+			Name:   "task-kill-on-timeout",
+			Usage:  "Send kill signal to the containers on timeout",
+			EnvVar: "PLUGIN_TASK_KILL_ON_TIMEOUT",
+		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
@@ -255,7 +287,6 @@ func run(c *cli.Context) error {
 		Region:                       c.String("region"),
 		Family:                       c.String("family"),
 		TaskRoleArn:                  c.String("task-role-arn"),
-		Service:                      c.String("service"),
 		ContainerName:                c.String("container-name"),
 		DockerImage:                  c.String("docker-image"),
 		Tag:                          c.String("tag"),
@@ -272,7 +303,6 @@ func run(c *cli.Context) error {
 		Memory:                       c.Int64("memory"),
 		MemoryReservation:            c.Int64("memory-reservation"),
 		NetworkMode:                  c.String("network-mode"),
-		DeploymentConfiguration:      c.String("deployment-configuration"),
 		DesiredCount:                 c.Int64("desired-count"),
 		YamlVerified:                 c.BoolT("yaml-verified"),
 		TaskCPU:                      c.String("task-cpu"),
@@ -292,6 +322,16 @@ func run(c *cli.Context) error {
 		Volumes:                      c.StringSlice("volumes"),
 		EfsVolumes:                   c.StringSlice("efs-volumes"),
 		PlacementConstraints:         c.String("placement-constraints"),
+
+		CapacityProviders:            c.StringSlice("capacity-providers"),
+        EnableExecuteCommand:         c.Bool("enable-execute-command"),
+        PlatformVersion:              c.String("platform-version"),
+        PropagateTags:                c.Bool("propagate-tags"),
+        DontWait:                     c.Bool("dont-wait"),
+        IgnoreExecutionFail:          c.Bool("ignore-execution-fail"),
+        TaskTimeout:                  c.Int64("task-timeout"),
+        TaskKillOnTimeout:            c.BoolT("task-kill-on-timeout"),
+
 	}
 	return plugin.Exec()
 }
