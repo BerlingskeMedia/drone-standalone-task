@@ -324,13 +324,13 @@ func run(c *cli.Context) error {
 		PlacementConstraints:         c.String("placement-constraints"),
 
 		CapacityProviders:            c.StringSlice("capacity-providers"),
-        EnableExecuteCommand:         c.Bool("enable-execute-command"),
-        PlatformVersion:              c.String("platform-version"),
-        PropagateTags:                c.Bool("propagate-tags"),
-        DontWait:                     c.Bool("dont-wait"),
-        IgnoreExecutionFail:          c.Bool("ignore-execution-fail"),
-        TaskTimeout:                  c.Int64("task-timeout"),
-        TaskKillOnTimeout:            c.BoolT("task-kill-on-timeout"),
+		EnableExecuteCommand:         c.Bool("enable-execute-command"),
+		PlatformVersion:              c.String("platform-version"),
+		PropagateTags:                c.Bool("propagate-tags"),
+		DontWait:                     c.Bool("dont-wait"),
+		IgnoreExecutionFail:          c.Bool("ignore-execution-fail"),
+		TaskTimeout:                  c.Int64("task-timeout"),
+		TaskKillOnTimeout:            c.BoolT("task-kill-on-timeout"),
 
 	}
 	return plugin.Exec()
