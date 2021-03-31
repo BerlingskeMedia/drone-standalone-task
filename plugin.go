@@ -16,10 +16,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecs"
 )
 
+// LogTime simply logs current time in standardized format, without adding newline break on the end
 func LogTime() {
-    fmt.Print("[" + time.Now().Format("2006-01-02 15:04:05") + "] ")
+	fmt.Print("[" + time.Now().Format("2006-01-02 15:04:05") + "] ")
 }
 
+// Plugin struct contains all input parameters for this plugin
 type Plugin struct {
 	Key                       string
 	Secret                    string
@@ -61,7 +63,7 @@ type Plugin struct {
 	PlacementConstraints      string
 
 	// ServiceNetworkAssignPublicIP - Whether the task's elastic network interface receives a public IP address. The default value is DISABLED.
-	ServiceNetworkAssignPublicIp string
+	ServiceNetworkAssignPublicIP string
 
 	// ServiceNetworkSecurityGroups represents the VPC security groups to use
 	// when running awsvpc network mode.
@@ -72,15 +74,14 @@ type Plugin struct {
 	ServiceNetworkSubnets []string
 
 	// NEW scheduled tasks parameters
-	CapacityProviders       []string    // [base] [weight] [name]
-	EnableExecuteCommand    bool
-	PlatformVersion         string
-	PropagateTags           bool
-	DontWait                bool
-	IgnoreExecutionFail     bool
-	TaskTimeout             int64
-	TaskKillOnTimeout       bool
-
+	CapacityProviders    []string // [base] [weight] [name]
+	EnableExecuteCommand bool
+	PlatformVersion      string
+	PropagateTags        bool
+	DontWait             bool
+	IgnoreExecutionFail  bool
+	TaskTimeout          int64
+	TaskKillOnTimeout    bool
 }
 
 // Struct for placement constraints.
@@ -98,11 +99,12 @@ const (
 	maximumPercentBaseParseErr        = "error parsing deployment_configuration maximumPercent: "
 	readOnlyBoolBaseParseErr          = "error parsing mount_points readOnly: "
 	placementConstraintsBaseParseErr  = "error parsing placement_constraints json: "
-	BaseParseErr                      = "error parsing capacity_provider Base integer: "
-	WeightParseErr                    = "error parsing capacity_provider Weight integer: "
-	TimeoutErr                        = "error - task exceeded timeout after: "
+	capProviderBaseParseErr           = "error parsing capacity_provider Base integer: "
+	weightParseErr                    = "error parsing capacity_provider Weight integer: "
+	timeoutErr                        = "error - task exceeded timeout after: "
 )
 
+// Exec is main body of this plugin
 func (p *Plugin) Exec() error {
 	fmt.Println("Drone AWS ECS Plugin built")
 	awsConfig := aws.Config{}
@@ -189,17 +191,17 @@ func (p *Plugin) Exec() error {
 
 	// EFS Volumes
 	for _, efsElem := range p.EfsVolumes {
-	    cleanedEfs := strings.Trim(efsElem, " ")
-	    parts := strings.SplitN(cleanedEfs, " ", 3)
-	    vol := ecs.Volume{
-            Name: aws.String(parts[0]),
-	    }
-	    vol.EfsVolumeConfiguration = &ecs.EFSVolumeConfiguration {
-	        FileSystemId: aws.String(parts[1]),
-	        RootDirectory: aws.String(parts[2]),
-	    }
+		cleanedEfs := strings.Trim(efsElem, " ")
+		parts := strings.SplitN(cleanedEfs, " ", 3)
+		vol := ecs.Volume{
+			Name: aws.String(parts[0]),
+		}
+		vol.EfsVolumeConfiguration = &ecs.EFSVolumeConfiguration{
+			FileSystemId:  aws.String(parts[1]),
+			RootDirectory: aws.String(parts[2]),
+		}
 
-	    volumes = append(volumes, &vol)
+		volumes = append(volumes, &vol)
 	}
 
 	// Mount Points
@@ -374,26 +376,26 @@ func (p *Plugin) Exec() error {
 	if cleanedCompatibilities != "" && len(compatibilitySlice) != 0 {
 		params.RequiresCompatibilities = aws.StringSlice(compatibilitySlice)
 	}
-        // placement constraints
-    placementConstraints := []*ecs.TaskDefinitionPlacementConstraint{}
+	// placement constraints
+	placementConstraints := []*ecs.TaskDefinitionPlacementConstraint{}
 	if p.PlacementConstraints != "" && len(p.PlacementConstraints) != 0 {
-        var placementConstraint []placementConstraintsTemplate
-        constraintParsingError := json.Unmarshal([]byte(p.PlacementConstraints), &placementConstraint)
-        if constraintParsingError != nil {
-            constraintsParseWrappedErr := errors.New(placementConstraintsBaseParseErr + constraintParsingError.Error())
-            return constraintsParseWrappedErr
+		var placementConstraint []placementConstraintsTemplate
+		constraintParsingError := json.Unmarshal([]byte(p.PlacementConstraints), &placementConstraint)
+		if constraintParsingError != nil {
+			constraintsParseWrappedErr := errors.New(placementConstraintsBaseParseErr + constraintParsingError.Error())
+			return constraintsParseWrappedErr
 
-        }
-        for _, constraint := range placementConstraint {
-            pc := ecs.TaskDefinitionPlacementConstraint{}
-            // distinctInstance constraint can only be specified when launching a task or creating a service. So, currently, the only available type is memberOf
-            pc.SetType(constraint.Type)
-            pc.SetExpression(constraint.Expression)
-            placementConstraints = append(placementConstraints, &pc)
-            //params.PlacementConstraints = append(params.PlacementConstraints, &pc)
-        }
-        params.PlacementConstraints = placementConstraints
-    }
+		}
+		for _, constraint := range placementConstraint {
+			pc := ecs.TaskDefinitionPlacementConstraint{}
+			// distinctInstance constraint can only be specified when launching a task or creating a service. So, currently, the only available type is memberOf
+			pc.SetType(constraint.Type)
+			pc.SetExpression(constraint.Expression)
+			placementConstraints = append(placementConstraints, &pc)
+			//params.PlacementConstraints = append(params.PlacementConstraints, &pc)
+		}
+		params.PlacementConstraints = placementConstraints
+	}
 
 	if len(p.TaskCPU) != 0 {
 		params.Cpu = aws.String(p.TaskCPU)
@@ -414,190 +416,186 @@ func (p *Plugin) Exec() error {
 
 	taskDefinition := *(resp.TaskDefinition.TaskDefinitionArn)
 
+	/// New section
 
-/// New section
+	taskParams := &ecs.RunTaskInput{
+		Cluster:              aws.String(p.Cluster),
+		Count:                aws.Int64(p.DesiredCount),
+		Group:                aws.String(p.Family),
+		LaunchType:           aws.String(p.Compatibilities),
+		NetworkConfiguration: p.setupServiceNetworkConfiguration(),
+		//Overrides:                TODO, or not - why override container if everything defined in this run (to consider)
+		//PlacementStrategy:        TODO
+		//Tags:                     TODO
+		TaskDefinition:       aws.String(taskDefinition), // TODO: give an option to not create a new task definition on each run, use existing one instead (to consider)
+		EnableExecuteCommand: aws.Bool(p.EnableExecuteCommand),
+	}
 
-    taskParams := &ecs.RunTaskInput{
-        Cluster:                    aws.String(p.Cluster),
-        Count:                      aws.Int64(p.DesiredCount),
-        Group:                      aws.String(p.Family),
-        LaunchType:                 aws.String(p.Compatibilities),
-        NetworkConfiguration:       p.setupServiceNetworkConfiguration(),
-        //Overrides:                TODO, or not - why override container if everything defined in this run (to consider)
-        //PlacementStrategy:        TODO
-        //Tags:                     TODO
-        TaskDefinition:             aws.String(taskDefinition), // TODO: give an option to not create a new task definition on each run, use existing one instead (to consider)
-        EnableExecuteCommand:       aws.Bool(p.EnableExecuteCommand),
-    }
+	if (p.Compatibilities == "FARGATE") && (len(p.PlatformVersion) > 0) {
+		taskParams.PlatformVersion = &p.PlatformVersion
+	}
+	if p.PropagateTags {
+		taskParams.PropagateTags = aws.String("TASK_DEFINITION")
+	}
 
-    if (p.Compatibilities == "FARGATE") && (len(p.PlatformVersion) > 0) {
-        taskParams.PlatformVersion = &p.PlatformVersion
-    }
-    if (p.PropagateTags) {
-        taskParams.PropagateTags = aws.String("TASK_DEFINITION")
-    }
-
-    for _,capElem := range p.CapacityProviders {
-        cleanedCap := strings.Trim(capElem, " ")
-	    parts := strings.SplitN(cleanedCap, " ", 3)
-	    base, baseErr := strconv.ParseInt(parts[0], 10, 64)
-	    weight, weightErr := strconv.ParseInt(parts[1], 10, 64)
-	    if baseErr != nil {
-			baseWrapperErr := errors.New(BaseParseErr + baseErr.Error())
+	for _, capElem := range p.CapacityProviders {
+		cleanedCap := strings.Trim(capElem, " ")
+		parts := strings.SplitN(cleanedCap, " ", 3)
+		base, baseErr := strconv.ParseInt(parts[0], 10, 64)
+		weight, weightErr := strconv.ParseInt(parts[1], 10, 64)
+		if baseErr != nil {
+			baseWrapperErr := errors.New(capProviderBaseParseErr + baseErr.Error())
 			LogTime()
 			fmt.Println(baseWrapperErr.Error())
 			return baseWrapperErr
 		}
-	    if weightErr != nil {
-			weightWrappedErr := errors.New(WeightParseErr + weightErr.Error())
+		if weightErr != nil {
+			weightWrappedErr := errors.New(weightParseErr + weightErr.Error())
 			LogTime()
 			fmt.Println(weightWrappedErr.Error())
 			return weightWrappedErr
 		}
-	    cap := &ecs.CapacityProviderStrategyItem {
-	        Base:               &base,
-	        Weight:             &weight,
-	        CapacityProvider:   &parts[2],
-	    }
-	    taskParams.CapacityProviderStrategy = append(taskParams.CapacityProviderStrategy, cap)
-    }
+		cap := &ecs.CapacityProviderStrategyItem{
+			Base:             &base,
+			Weight:           &weight,
+			CapacityProvider: &parts[2],
+		}
+		taskParams.CapacityProviderStrategy = append(taskParams.CapacityProviderStrategy, cap)
+	}
 
-    // Standalone task's placementConstraints seems to be redundant if we already use them in task definition... yes/no?
-    // this is bad: ecs.TaskDefinitionPlacementConstraint <> ecs.PlacementConstraint
-    /* if len(placementConstraints) > 0 {
-        taskParams.PlacementConstraints = placementConstraints
-    } */
+	// Standalone task's placementConstraints seems to be redundant if we already use them in task definition... yes/no?
+	// this is bad: ecs.TaskDefinitionPlacementConstraint <> ecs.PlacementConstraint
+	/* if len(placementConstraints) > 0 {
+	    taskParams.PlacementConstraints = placementConstraints
+	} */
 
+	tresp, terr := svc.RunTask(taskParams)
+	if terr != nil {
+		return terr
+	}
+	LogTime()
+	fmt.Println("Starting tasks:")
+	fmt.Println(tresp)
 
+	// get tasks' IDs:
+	tids := []*string{}
+	for _, task := range tresp.Tasks {
+		tid := task.TaskArn
+		tids = append(tids, tid)
+	}
 
-    tresp, terr := svc.RunTask(taskParams)
-    if terr != nil {
-        return terr
-    }
-    LogTime()
-    fmt.Println("Starting tasks:")
-    fmt.Println(tresp)
+	describeTaskInput := &ecs.DescribeTasksInput{
+		Cluster: aws.String(p.Cluster),
+		Tasks:   tids,
+	}
 
-    // get tasks' IDs:
-    tids := []*string{}
-    for _,task := range tresp.Tasks {
-        tid := task.TaskArn
-        tids = append(tids, tid)
-    }
+	// Wait until each task is finished (or timeout)
+	//timeout := p.TaskTimeout
+	timeStart := time.Now().Unix()
+	timePassed := int64(0)
 
+	taskStatus := make(map[string]string)
+	finalOutput := &ecs.DescribeTasksOutput{}
+	for {
+		allTasksStopped := true
+		tout, tterr := svc.DescribeTasks(describeTaskInput)
+		if tterr != nil {
+			return tterr
+		}
+		// Get failures
+		if len(tout.Failures) > 0 {
+			LogTime()
+			fmt.Println("There are failures!")
+			fmt.Println(tout.Failures)
+			break
+		}
 
-    describeTaskInput := &ecs.DescribeTasksInput {
-        Cluster:                    aws.String(p.Cluster),
-        Tasks:                      tids,
-    }
+		// Get tasks statuses
+		for _, task := range tout.Tasks {
+			val, exists := taskStatus[*task.TaskArn]
+			if (!exists) || (val != *task.LastStatus) {
+				taskStatus[*task.TaskArn] = *task.LastStatus
+				LogTime()
+				fmt.Println("Task: " + *task.TaskArn + "; status: " + *task.LastStatus)
+			}
+			if p.DontWait {
+				if len(val) == 0 || (val == "PROVISIONING") || (val == "PENDING") || (val == "ACTIVATING") {
+					allTasksStopped = false
+				}
+			} else {
+				if !(val == "STOPPED") {
+					allTasksStopped = false
+				}
+			}
+		}
 
+		if timePassed != time.Now().Unix()-timeStart {
+			timePassed = time.Now().Unix() - timeStart
+			if timePassed > p.TaskTimeout {
+				LogTime()
+				fmt.Println("TIMEOUT!")
+				if p.TaskKillOnTimeout {
+					fmt.Println("Stopping tasks:")
+					// send kill signal to tasks
+					for key := range taskStatus {
+						stopTask := &ecs.StopTaskInput{
+							Cluster: aws.String(p.Cluster),
+							Reason:  aws.String(fmt.Sprintf("Drone's plugin timeout after %ds", timePassed)),
+							Task:    &key,
+						}
+						out, err := svc.StopTask(stopTask)
+						fmt.Println(out)
+						if err != nil {
+							fmt.Println(err)
+						}
+					}
+				}
+				//return errors.New(fmt.Sprintf(timeoutErr+"%ds!", timePassed))
+				return fmt.Errorf(timeoutErr+"%ds!", timePassed)
+			}
+			// Impatience log
+			if (timePassed)%10 == 0 {
+				LogTime()
+				fmt.Println("Still running...")
+			}
 
-    // Wait until each task is finished (or timeout)
-    //timeout := p.TaskTimeout
-    timeStart := time.Now().Unix()
-    timePassed := int64(0)
-
-    taskStatus := make(map[string]string)
-    finalOutput := &ecs.DescribeTasksOutput{}
-    for {
-        allTasksStopped := true
-        tout,tterr := svc.DescribeTasks(describeTaskInput)
-        if tterr != nil {
-            return tterr
-        }
-        // Get failures
-        if len(tout.Failures) > 0 {
-            LogTime()
-            fmt.Println("There are failures!")
-            fmt.Println(tout.Failures)
-            break
-        }
-
-        // Get tasks statuses
-        for _,task := range tout.Tasks {
-            val, exists := taskStatus[*task.TaskArn]
-            if (!exists) || (val != *task.LastStatus) {
-                taskStatus[*task.TaskArn] = *task.LastStatus
-                LogTime()
-                fmt.Println("Task: " + *task.TaskArn + "; status: " + *task.LastStatus)
-            }
-            if p.DontWait {
-                if len(val) == 0 || (val == "PROVISIONING") || (val == "PENDING") || (val == "ACTIVATING") {
-                    allTasksStopped = false
-                }
-            } else {
-                if !(val == "STOPPED") {
-                    allTasksStopped = false
-                }
-            }
-        }
-
-        if timePassed != time.Now().Unix() - timeStart {
-            timePassed = time.Now().Unix() - timeStart
-            if (timePassed > p.TaskTimeout) {
-                LogTime()
-                fmt.Println("TIMEOUT!")
-                if p.TaskKillOnTimeout {
-                    fmt.Println("Stopping tasks:")
-                    // send kill signal to tasks
-                    for key,_ := range  taskStatus {
-                        stopTask := &ecs.StopTaskInput {
-                            Cluster:    aws.String(p.Cluster),
-                            Reason:     aws.String(fmt.Sprintf("Drone's plugin timeout after %ds",timePassed)),
-                            Task:       &key,
-                        }
-                        out,err := svc.StopTask(stopTask)
-                        fmt.Println(out)
-                        if err != nil {
-                            fmt.Println(err)
-                        }
-                    }
-                }
-                return errors.New(fmt.Sprintf(TimeoutErr + "%ds!", timePassed))
-            }
-            // Impatience log
-            if (timePassed) % 10 == 0 {
-                LogTime()
-                fmt.Println("Still running...")
-            }
-
-        }
+		}
 
 		if allTasksStopped {
-		    LogTime()
-		    if p.DontWait {
-		        fmt.Println("All tasks running!")
-		    } else {
-		        fmt.Println("All tasks stopped!")
-		    }
-		    finalOutput = tout
+			LogTime()
+			if p.DontWait {
+				fmt.Println("All tasks running!")
+			} else {
+				fmt.Println("All tasks stopped!")
+			}
+			finalOutput = tout
 			break
 		}
 
 		time.Sleep(200 * time.Millisecond)
 	}
 
-    // if ignore fail, print final finalOutput
-    if p.IgnoreExecutionFail {
-        fmt.Println(finalOutput)
-    } else if !p.DontWait {
-    // Check all containers exit codes
-        failedContainers := []string{}
-        for _,task := range finalOutput.Tasks {
-            for _,container := range task.Containers {
-                if *container.ExitCode != int64(0) {
-                    failedContainers = append(failedContainers, container.GoString())
-                }
-            }
-        }
+	// if ignore fail, print final finalOutput
+	if p.IgnoreExecutionFail {
+		fmt.Println(finalOutput)
+	} else if !p.DontWait {
+		// Check all containers exit codes
+		failedContainers := []string{}
+		for _, task := range finalOutput.Tasks {
+			for _, container := range task.Containers {
+				if *container.ExitCode != int64(0) {
+					failedContainers = append(failedContainers, container.GoString())
+				}
+			}
+		}
 
-        if len(failedContainers) > 0 {
-            LogTime()
-            fmt.Println("Failed containers:")
-            fmt.Println(failedContainers)
-            return errors.New("There are failed containers!")
-        }
-    }
+		if len(failedContainers) > 0 {
+			LogTime()
+			fmt.Println("Failed containers:")
+			fmt.Println(failedContainers)
+			return errors.New("There are failed containers")
+		}
+	}
 
 	return nil
 }
@@ -611,8 +609,8 @@ func (p *Plugin) setupServiceNetworkConfiguration() *ecs.NetworkConfiguration {
 		return nil
 	}
 
-	if len(p.ServiceNetworkAssignPublicIp) != 0 {
-		netConfig.AwsvpcConfiguration.SetAssignPublicIp(p.ServiceNetworkAssignPublicIp)
+	if len(p.ServiceNetworkAssignPublicIP) != 0 {
+		netConfig.AwsvpcConfiguration.SetAssignPublicIp(p.ServiceNetworkAssignPublicIP)
 	}
 
 	if len(p.ServiceNetworkSubnets) > 0 {
