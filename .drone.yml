@@ -60,50 +60,111 @@ steps:
       go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm/${DRONE_REPO_NAME}
     fi
 
-- name: publish_linux_amd64
-  image: plugins/docker
-  depends_on: [ build_linux_amd64 ]
+- name: publish linux arm64
+  image: plugins/ecr
+  depends_on: [build_linux_arm64]
   settings:
+    mirror:
+      from_secret: docker_proxy_mirror
+    #auto_tag_suffix: ${DRONE_BRANCH,,}
+    auto_tag_suffix: _arm64
     auto_tag: true
-    username:
-      from_secret: docker_username
-    password:
-      from_secret: docker_password
+    purge: false
+    #tags:
+    #  - ${DRONE_COMMIT}
+    registry:
+      from_secret: registry
     repo:
-      from_secret: plugin_repo
-    dockerfile: Dockerfile
-  when:
-    event: [ tag, push ]
-
-- name: publish_linux_arm64
-  image: plugins/docker
-  depends_on: [ build_linux_arm64 ]
-  settings:
-    auto_tag: true
-    auto_tag_suffix: linux-arm64
-    username:
-      from_secret: docker_username
-    password:
-      from_secret: docker_password
-    repo:
-      from_secret: plugin_repo
+      from_secret: repository_standalone_task
     dockerfile: Dockerfile.arm64
+    region:
+      from_secret: region
   when:
-    event: [ tag, push ]
+    event:
+      exclude:
+        - pull_request
 
-- name: publish_linux_arm
-  image: plugins/docker
-  depends_on: [ build_linux_arm ]
+- name: publish linux amd64
+  image: plugins/ecr
+  depends_on: [build_linux_amd64]
   settings:
+    mirror:
+      from_secret: docker_proxy_mirror
+    #auto_tag_suffix: ${DRONE_BRANCH,,}
+    #auto_tag_suffix: _amd64
     auto_tag: true
-    auto_tag_suffix: linux-arm
-    username:
-      from_secret: docker_username
-    password:
-      from_secret: docker_password
+    purge: false
+    #tags:
+    #  - ${DRONE_COMMIT}
+    registry:
+      from_secret: registry
     repo:
-      from_secret: plugin_repo
-    dockerfile: Dockerfile.arm
+      from_secret: repository_standalone_task
+    dockerfile: Dockerfile
+    region:
+      from_secret: region
   when:
-     event: [ tag, push ]
+    event:
+      exclude:
+        - pull_request
 
+- name: publish linux arm
+  image: plugins/ecr
+  depends_on: [build_linux_arm]
+  settings:
+    mirror:
+      from_secret: docker_proxy_mirror
+    auto_tag_suffix: _arm
+    auto_tag: true
+    purge: false
+    #tags:
+    #  - ${DRONE_COMMIT}
+    registry:
+      from_secret: registry
+    repo:
+      from_secret: repository_standalone_task
+    dockerfile: Dockerfile.arm
+    region:
+      from_secret: region
+  when:
+    event:
+      exclude:
+        - pull_request
+
+trigger:
+  branch:
+  - master
+---
+kind: "secret"
+name: "aws_access_key_production"
+get:
+  path: "drone/co-production-drone-plugins"
+  name: "aws_access_key"
+
+---
+kind: "secret"
+name: "aws_access_key_secret_production"
+get:
+  path: "drone/co-production-drone-plugins"
+  name: "aws_access_key_secret"
+
+---
+kind: "secret"
+name: "region"
+get:
+  path: "drone/co-production-drone-plugins"
+  name: "region"
+
+---
+kind: "secret"
+name: "registry"
+get:
+  path: "drone/co-production-drone-plugins"
+  name: "registry"
+
+---
+kind: "secret"
+name: "repository_standalone_task"
+get:
+  path: "drone/co-production-drone-plugins"
+  name: "repository_standalone_task"

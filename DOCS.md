@@ -1,4 +1,26 @@
-Use this plugin for deploying a docker container application to AWS EC2 Container Service (ECS).
+Use this plugin for deploying a docker container application to AWS EC2 Container Service (ECS) as a standalone task.
+
+### Required IAM Policies:
+
+```json
+{
+        "Effect": "Allow",
+            "Action": [
+                "logs:PutLogEvents",
+                "logs:CreateLogStream",
+                "logs:CreateLogGroup",
+                "iam:PassRole",
+                "ecs:RunTask",
+                "ecs:RegisterTaskDefinition",
+                "ecr:GetAuthorizationToken",
+                "ecr:CompleteLayerUpload",
+                "ecr:BatchCheckLayerAvailability",
+                "ecs:DescribeTasks",
+                "ecs:StopTask"
+            ],
+            "Resource": "*"
+}
+```
 
 ### Settings
 
@@ -6,7 +28,6 @@ Use this plugin for deploying a docker container application to AWS EC2 Containe
 * `secret_key` - AWS secret access key
 * `user_role_arn` - AWS user role. Optional. Switch to different role after initial authentication
 * `region` - AWS availability zone
-* `service` - Name of the service in the cluster, **MUST** be created already in ECS
 * `container_name` - Name of the container, defaults to ${family}-container
 * `cluster` - Name of the cluster. Optional. Default cluster is used if not specified
 * `family` - Family name of the task definition to create or update with a new revision
@@ -18,7 +39,6 @@ Use this plugin for deploying a docker container application to AWS EC2 Containe
 * `memory`, The hard limit (in MiB) of memory to present to the container
 * `memory_reservation`, The soft limit (in MiB) of memory to reserve for the container. Defaults to 128
 * `environment_variables` - List of Environment Variables to be passed to the container, format is `NAME=VALUE`
-* `deployment_configuration` - Deployment parameters that control how many tasks run during the deployment and the ordering of stopping and starting tasks, format is `minimumHealthyPercent maximumPercent`
 * `desired_count` - The number of instantiations of the specified task definition to place and keep running on your cluster. Set it to a negative number to not modify current desired_count in the service.
 * `log_driver` - The log driver to use for the container
 * `log_options` - The configuration options to send to the log driver
@@ -38,7 +58,17 @@ Use this plugin for deploying a docker container application to AWS EC2 Containe
 * `mount_points` - Mount points from host to container, format is `sourceVolume containerPath readOnly` where `sourceVolume`, `containerPath` are strings, `readOnly` is string [`true`, `false`]
 * `volumes` - Bind Mount Volumes, format is `name sourcePath` both values are strings. Note with FARGATE launch type, you only provide the name of the volume, not the `sourcePath`
 * `efs_volumes` - Define EFS volume, format: `name efs-id root-directory`. Current configuration doesn't support encryption in transit.
-* `placement_constraints` - Ecs task definition placement constraints. Specify an array of constraints as a single string. Note that "distinctInstance" type can only be specified during run task or in service. Not inside a task definition. 
+* `placement_constraints` - Ecs task definition placement constraints. Specify an array of constraints as a single string. Note that "distinctInstance" type can only be specified during run task or in service. Not inside a task definition.
+
+New parameters:
+* `capacity_providers` - Defines capacity providers. Format: list of `base(int) weight(int) name`; base - designates how many tasks, at a minimum, to run on the specified provider; weight - designates how many tasks will be assigned to this provider from among of all tasks cap in comparition to other providers; name - capacity provider's name
+* `enable_execute_command` - Whether or not to enable the execute command functionality for the containers. Value is boolean [`true`, `false`]
+* `propagate_tags` - Specifies whether to propagate the tags from the task definition to the task. Value is boolean [`true`, `false`]
+* `platform_version` - The platform version the task should run. A platform version is only specified for tasks using the Fargate launch type. If one is not specified, the LATEST platform version is used by default
+* `dont_wait` - If set on `true` - this drone's step won't wait for all tasks to finish. Step ends execution when all tasks enter into `RUNNING` state. This also doesn't checks execution exit status. Default `false`
+* `ignore_execution_fail` - If set on `true` - drone's step won't fail on container's exit code !=0.
+* `task_timeout` - Timeout in seconds for task to successfully set all stages from `PROVISSIONING` to `STOPPED` or to `RUNNING` if `dont-wait` flag enabled. Default 300.
+* `task_kill_on_timeout` - When task reaches timeout - send kill signal to the containers. Deafult `true`
 
 
 ## Example
@@ -46,13 +76,12 @@ Use this plugin for deploying a docker container application to AWS EC2 Containe
 ```yaml
 steps:
   - name: Deploy to ECS
-    image: pelotech/drone-ecs
+    image: ////
     settings:
       region: eu-west-1
       family: my-ecs-task
       docker_image: namespace/repo
       tag: latest
-      service: my-ecs-service
       task_role_arn: arn:aws:iam::012345678901:role/rolename
       log_driver: awslogs
       log_options:
@@ -72,7 +101,6 @@ steps:
       placement_constraints: [{"type": "memberOf","expression": "attribute:test == true"}]
       cpu: 1024
       desired_count: 1
-      deployment_configuration: 50 200
       ulimits:
         - nofile 2048 4096
       # this mount_point and volumes config will give drone_runner_docker access to docker.sock
@@ -81,6 +109,13 @@ steps:
       volumes:
         - dockersock /var/run/docker.sock      
       secrets: [AWS_SECRET_KEY, AWS_ACCESS_KEY]
+      enable_execute_command: true
+      propagate_tags: true
+      platform_version: LATEST
+      dont_wait: false
+      ignore_execution_fail: false
+      task_timeout: 300
+      task_kill_on_timeout: true
     # declaring the environment is necessary to get secret_environment_variables to work  
     environment:
       MY_SANDBOX_SECRET:
