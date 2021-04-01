@@ -1,5 +1,74 @@
 kind: pipeline
-name: default
+name: Tests
+
+workspace:
+  base: /go
+  path: src/github.com/${DRONE_REPO_OWNER}/${DRONE_REPO_NAME}
+
+steps:
+
+- name: test
+  image: golang:1.13
+  pull: true
+  commands:
+  - go vet
+  - go test -cover -coverprofile=coverage.out
+
+- name: build_linux_amd64
+  image: golang:1.13
+  depends_on: [ test ]
+  environment:
+    GOOS: linux
+    GOARCH: amd64
+    CGO_ENABLED: 0
+  commands:
+  - |
+    if test "${DRONE_TAG}" = ""; then
+      go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/amd64/${DRONE_REPO_NAME}
+    else
+      go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/amd64/${DRONE_REPO_NAME}
+    fi
+
+- name: build_linux_arm64
+  image: golang:1.13
+  depends_on: [ test ]
+  environment:
+    GOOS: linux
+    GOARCH: arm64
+    CGO_ENABLED: 0
+  commands:
+  - |
+    if test "${DRONE_TAG}" = ""; then
+      go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/${DRONE_REPO_NAME}
+    else
+      go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm64/${DRONE_REPO_NAME}
+    fi
+
+- name: build_linux_arm
+  image: golang:1.13
+  depends_on: [ test ]
+  environment:
+    GOOS: linux
+    GOARCH: arm
+    CGO_ENABLED: 0
+    GOARM: 7
+  commands:
+  - |
+    if test "${DRONE_TAG}" = ""; then
+      go build -v -ldflags "-X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm/${DRONE_REPO_NAME}
+    else
+      go build -v -ldflags "-X main.version=${DRONE_TAG##v} -X main.build=${DRONE_BUILD_NUMBER}" -a -o release/linux/arm/${DRONE_REPO_NAME}
+    fi
+
+trigger:
+  event:
+    - pull_request
+  branch:
+  - master
+
+---
+kind: pipeline
+name: publish
 
 workspace:
   base: /go
@@ -79,9 +148,6 @@ steps:
     dockerfile: Dockerfile.arm64
     region:
       from_secret: region
-  when:
-    event:
-      - tag
 
 - name: publish linux amd64
   image: plugins/ecr
@@ -102,9 +168,6 @@ steps:
     dockerfile: Dockerfile
     region:
       from_secret: region
-  when:
-    event:
-      - tag
 
 - name: publish linux arm
   image: plugins/ecr
@@ -124,13 +187,11 @@ steps:
     dockerfile: Dockerfile.arm
     region:
       from_secret: region
-  when:
-    event:
-      - tag
 
 trigger:
-  branch:
-  - master
+  event:
+  - tag
+
 ---
 kind: "secret"
 name: "aws_access_key_production"
