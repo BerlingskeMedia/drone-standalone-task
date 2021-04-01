@@ -136,7 +136,7 @@ steps:
     mirror:
       from_secret: docker_proxy_mirror
     #auto_tag_suffix: ${DRONE_BRANCH,,}
-    auto_tag_suffix: _arm64
+    auto_tag_suffix: arm64
     auto_tag: true
     purge: false
     tags:
@@ -175,7 +175,7 @@ steps:
   settings:
     mirror:
       from_secret: docker_proxy_mirror
-    auto_tag_suffix: _arm
+    auto_tag_suffix: arm
     auto_tag: true
     purge: false
     tags:
