@@ -102,6 +102,7 @@ const (
 	capProviderBaseParseErr           = "error parsing capacity_provider Base integer: "
 	weightParseErr                    = "error parsing capacity_provider Weight integer: "
 	timeoutErr                        = "error - task exceeded timeout after: "
+	taskFailedErr                     = "Task failed: "
 )
 
 // Exec is main body of this plugin
@@ -583,7 +584,13 @@ func (p *Plugin) Exec() error {
 		failedContainers := []string{}
 		for _, task := range finalOutput.Tasks {
 			for _, container := range task.Containers {
-				if *container.ExitCode != int64(0) {
+				if container.ExitCode == nil  {
+				    LogTime()
+                    fmt.Println("Task Failed")
+                    fmt.Println(task)
+                    return fmt.Errorf(taskFailedErr + *task.StoppedReason)
+				} else if *container.ExitCode != int64(0) {
+				    fmt.Println(container.GoString())
 					failedContainers = append(failedContainers, container.GoString())
 				}
 			}

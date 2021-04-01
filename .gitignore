@@ -33,5 +33,5 @@ drone-ecs
 
 # scripts to use on local machine, nothing interresting to see here!
 docker_run.sh
-run.sh
+run*.sh
 build.sh
