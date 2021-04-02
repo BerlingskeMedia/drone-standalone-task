@@ -273,6 +273,11 @@ func main() {
 			Usage:  "Send kill signal to the containers on timeout",
 			EnvVar: "PLUGIN_TASK_KILL_ON_TIMEOUT",
 		},
+		cli.StringSliceFlag{
+			Name:   "command",
+			Usage:  "A list of strings to pass as `Command` to container",
+			EnvVar: "PLUGIN_COMMAND",
+		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
@@ -331,6 +336,7 @@ func run(c *cli.Context) error {
 		IgnoreExecutionFail:          c.Bool("ignore-execution-fail"),
 		TaskTimeout:                  c.Int64("task-timeout"),
 		TaskKillOnTimeout:            c.BoolT("task-kill-on-timeout"),
+		Command:                      c.StringSlice("command"),
 
 	}
 	return plugin.Exec()
