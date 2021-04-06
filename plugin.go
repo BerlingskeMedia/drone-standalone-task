@@ -82,6 +82,7 @@ type Plugin struct {
 	IgnoreExecutionFail  bool
 	TaskTimeout          int64
 	TaskKillOnTimeout    bool
+	Command              []string
 }
 
 // Struct for placement constraints.
@@ -344,6 +345,11 @@ func (p *Plugin) Exec() error {
 		}
 	}
 
+	// Command
+	for _, command := range p.Command {
+		definition.Command = append(definition.Command, &command)
+	}
+
 	if len(p.NetworkMode) == 0 {
 		p.NetworkMode = "bridge"
 	}
@@ -584,13 +590,13 @@ func (p *Plugin) Exec() error {
 		failedContainers := []string{}
 		for _, task := range finalOutput.Tasks {
 			for _, container := range task.Containers {
-				if container.ExitCode == nil  {
-				    LogTime()
-                    fmt.Println("Task Failed")
-                    fmt.Println(task)
-                    return fmt.Errorf(taskFailedErr + *task.StoppedReason)
+				if container.ExitCode == nil {
+					LogTime()
+					fmt.Println("Task Failed")
+					fmt.Println(task)
+					return fmt.Errorf(taskFailedErr + *task.StoppedReason)
 				} else if *container.ExitCode != int64(0) {
-				    fmt.Println(container.GoString())
+					fmt.Println(container.GoString())
 					failedContainers = append(failedContainers, container.GoString())
 				}
 			}

@@ -32,12 +32,12 @@ Use this plugin for deploying a docker container application to AWS EC2 Containe
 * `cluster` - Name of the cluster. Optional. Default cluster is used if not specified
 * `family` - Family name of the task definition to create or update with a new revision
 * `task_role_arn` - ECS task IAM role
-* `docker_image`, Container image to use, do not include the tag here
+* `docker_image` - Container image to use, do not include the tag here
 * `tag` - Tag of the image to use, defaults to latest
 * `port_mappings` - Port mappings from host to container, format is `hostPort containerPort`, protocol is automatically set to TransportProtocol
-* `cpu`, The number of cpu units to reserve for the container
-* `memory`, The hard limit (in MiB) of memory to present to the container
-* `memory_reservation`, The soft limit (in MiB) of memory to reserve for the container. Defaults to 128
+* `cpu` - The number of cpu units to reserve for the container
+* `memory` - The hard limit (in MiB) of memory to present to the container
+* `memory_reservation` - The soft limit (in MiB) of memory to reserve for the container. Defaults to 128
 * `environment_variables` - List of Environment Variables to be passed to the container, format is `NAME=VALUE`
 * `desired_count` - The number of instantiations of the specified task definition to place and keep running on your cluster. Set it to a negative number to not modify current desired_count in the service.
 * `log_driver` - The log driver to use for the container
@@ -50,7 +50,7 @@ Use this plugin for deploying a docker container application to AWS EC2 Containe
 * `task_memory` - The amount of memory (in MiB) used by the task.It can be expressed as an integer using MiB, for example 1024, or as a string using GB. Required if using Fargate launch type
 * `task_execution_role_arn` - The Amazon Resource Name (ARN) of the task execution role that the Amazon ECS container agent and the Docker daemon can assume.
 * `compatibilities` - Space-delimited list of launch types supported by the task, defaults to EC2 if not specified
-* `task_network_mode` - If compatibilities includes FARGATE, this must be set to awsvpc.
+* `network_mode` - If compatibilities includes FARGATE, this must be set to awsvpc.
 * `service_network_assign_public_ip` - Whether the task's elastic network interface receives a public IP address. The default value is DISABLED.
 * `service_network_security_groups` - The security groups associated with the task or service. If you do not specify a security group, the default security group for the VPC is used. There is a limit of 5 security groups that can be specified per AwsVpcConfiguration.
 * `service_network_subnets` - The subnets associated with the task or service. There is a limit of 16 subnets that can be specified per AwsVpcConfiguration.
@@ -59,6 +59,11 @@ Use this plugin for deploying a docker container application to AWS EC2 Containe
 * `volumes` - Bind Mount Volumes, format is `name sourcePath` both values are strings. Note with FARGATE launch type, you only provide the name of the volume, not the `sourcePath`
 * `efs_volumes` - Define EFS volume, format: `name efs-id root-directory`. Current configuration doesn't support encryption in transit.
 * `placement_constraints` - Ecs task definition placement constraints. Specify an array of constraints as a single string. Note that "distinctInstance" type can only be specified during run task or in service. Not inside a task definition.
+* `healthcheck-command` - List representing the command that the container runs to determine if it is healthy. Must start with CMD to execute the command arguments directly, or CMD-SHELL to run the command with the container's default shell.
+* `healthcheck-interval` - The time period in seconds between each health check execution. You may specify between 5 and 300 seconds. Defaults to 30 seconds. Default: 30
+* `healthcheck-retries` - The number of times to retry a failed health check before the container is considered unhealthy. You may specify between 1 and 10 retries. Defaults to 3
+* `healthcheck-start-period` - The grace period within which to provide containers time to bootstrap before failed health checks count towards the maximum number of retries. You may specify between 0 and 300 seconds. The startPeriod is disabled by default.
+* `healthcheck-timeout` - The time period in seconds to wait for a health check to succeed before it is considered a failure. You may specify between 2 and 60 seconds. Defaults to 5 seconds
 
 New parameters:
 * `capacity_providers` - Defines capacity providers. Format: list of `base(int) weight(int) name`; base - designates how many tasks, at a minimum, to run on the specified provider; weight - designates how many tasks will be assigned to this provider from among of all tasks cap in comparition to other providers; name - capacity provider's name
@@ -69,6 +74,7 @@ New parameters:
 * `ignore_execution_fail` - If set on `true` - drone's step won't fail on container's exit code !=0.
 * `task_timeout` - Timeout in seconds for task to successfully set all stages from `PROVISSIONING` to `STOPPED` or to `RUNNING` if `dont-wait` flag enabled. Default 300.
 * `task_kill_on_timeout` - When task reaches timeout - send kill signal to the containers. Deafult `true`
+* `command` - A list of strings to pass as `Command` to container.
 
 
 ## Example
