@@ -342,7 +342,7 @@ func run(c *cli.Context) error {
 		TaskTimeout:                  c.Int64("task-timeout"),
 		TaskKillOnTimeout:            c.BoolT("task-kill-on-timeout"),
 		Command:                      c.StringSlice("command"),
-	    Privileged:                   c.Bool("privileged")
+	    Privileged:                   c.Bool("privileged"),
 
 	}
 	return plugin.Exec()
