@@ -148,6 +148,10 @@ steps:
     dockerfile: Dockerfile.arm64
     region:
       from_secret: region
+    access_key:
+      from_secret: aws_access_key_production
+    secret_key:
+      from_secret: aws_access_key_secret_production
 
 - name: publish linux amd64
   image: plugins/ecr
@@ -168,6 +172,10 @@ steps:
     dockerfile: Dockerfile
     region:
       from_secret: region
+    access_key:
+      from_secret: aws_access_key_production
+    secret_key:
+      from_secret: aws_access_key_secret_production
 
 - name: publish linux arm
   image: plugins/ecr
@@ -187,6 +195,10 @@ steps:
     dockerfile: Dockerfile.arm
     region:
       from_secret: region
+    access_key:
+      from_secret: aws_access_key_production
+    secret_key:
+      from_secret: aws_access_key_secret_production
 
 trigger:
   event:
