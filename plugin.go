@@ -162,7 +162,7 @@ func (p *Plugin) Exec() error {
 		//User: aws.String("String"),
 		VolumesFrom: []*ecs.VolumeFrom{},
 		//WorkingDirectory: aws.String("String"),
-		Privileged: aws.Bool(p.Privileged)
+		Privileged: aws.Bool(p.Privileged),
 	}
 	volumes := []*ecs.Volume{}
 
