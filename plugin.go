@@ -83,6 +83,7 @@ type Plugin struct {
 	TaskTimeout          int64
 	TaskKillOnTimeout    bool
 	Command              []string
+	Privileged           bool
 }
 
 // Struct for placement constraints.
@@ -133,6 +134,10 @@ func (p *Plugin) Exec() error {
 	if len(p.ContainerName) == 0 {
 		p.ContainerName = p.Family + "-container"
 	}
+	// Fargate doesn't support privileged mode
+	if (p.Compatibilities == "FARGATE") {
+		p.Privileged = false
+	}
 
 	definition := ecs.ContainerDefinition{
 		Command: []*string{},
@@ -157,6 +162,7 @@ func (p *Plugin) Exec() error {
 		//User: aws.String("String"),
 		VolumesFrom: []*ecs.VolumeFrom{},
 		//WorkingDirectory: aws.String("String"),
+		Privileged: aws.Bool(p.Privileged)
 	}
 	volumes := []*ecs.Volume{}
 

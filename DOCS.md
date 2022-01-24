@@ -75,6 +75,7 @@ New parameters:
 * `task_timeout` - Timeout in seconds for task to successfully set all stages from `PROVISSIONING` to `STOPPED` or to `RUNNING` if `dont-wait` flag enabled. Default 300.
 * `task_kill_on_timeout` - When task reaches timeout - send kill signal to the containers. Deafult `true`
 * `command` - A list of strings to pass as `Command` to container.
+* `privileged - Container will run in privileged mode (applicable only for EC2 launch type)
 
 
 ## Example

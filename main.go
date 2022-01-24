@@ -278,6 +278,11 @@ func main() {
 			Usage:  "A list of strings to pass as `Command` to container",
 			EnvVar: "PLUGIN_COMMAND",
 		},
+		cli.BoolFlag{
+			Name:   "privileged",
+			Usage:  "Container will run in privileged mode (applicable only for EC2 launch type)",
+			EnvVar: "PLUGIN_PRIVILEGED",
+		},
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
@@ -337,6 +342,7 @@ func run(c *cli.Context) error {
 		TaskTimeout:                  c.Int64("task-timeout"),
 		TaskKillOnTimeout:            c.BoolT("task-kill-on-timeout"),
 		Command:                      c.StringSlice("command"),
+	    Privileged:                   c.Bool("privileged")
 
 	}
 	return plugin.Exec()

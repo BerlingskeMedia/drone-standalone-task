@@ -1,3 +1,7 @@
+# 1.2.0
+## Main changes:
+    - Added support for `privileged` parameter - runs container in privileged mode (available only for EC2)
+
 # 1.1.0
 ## Main changes:
     - Added support for `command` parameter
