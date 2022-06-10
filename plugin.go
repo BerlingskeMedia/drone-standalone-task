@@ -352,7 +352,9 @@ func (p *Plugin) Exec() error {
 	}
 
 	// Command
-	for _, command := range p.Command {
+	for _, v := range p.Command {
+		var command string
+		command = v
 		definition.Command = append(definition.Command, &command)
 	}
 
